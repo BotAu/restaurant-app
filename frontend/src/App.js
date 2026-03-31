@@ -11,7 +11,7 @@ function App() {
 
   return (
     <div style={{ padding: '20px' }}>
-      <h1>🍽️ Restaurant Recommender</h1>
+      <h1>Restaurant Recommender</h1>
 
       <div>
         <strong>Test login:</strong><br />

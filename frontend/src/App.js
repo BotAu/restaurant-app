@@ -3,19 +3,30 @@ import React, { useEffect, useState } from 'react';
 function App() {
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [lat, setLat] = useState('50.0413'); // domyślne współrzędne
+  const [lat, setLat] = useState('50.0413');
   const [lon, setLon] = useState('21.9990');
-  const [radius, setRadius] = useState('1000'); // promień w metrach
+  const [radius, setRadius] = useState('1000');
+  const [limit] = useState(50); // ile pobierać na raz
+  const [offset, setOffset] = useState(0); // do paginacji
+  const [hasMore, setHasMore] = useState(true); // czy są jeszcze wyniki
 
-  // Funkcja pobierania restauracji z serwera
-  const fetchRestaurants = async () => {
+  const fetchRestaurants = async (reset = false) => {
     setLoading(true);
     try {
+      const currentOffset = reset ? 0 : offset;
       const res = await fetch(
-        `http://localhost:5000/restaurants?lat=${lat}&lon=${lon}&radius=${radius}`
+        `http://localhost:5000/restaurants?lat=${lat}&lon=${lon}&radius=${radius}&limit=${limit}&offset=${currentOffset}`
       );
       const data = await res.json();
-      setRestaurants(data);
+
+      if (reset) {
+        setRestaurants(data);
+      } else {
+        setRestaurants(prev => [...prev, ...data]);
+      }
+
+      setOffset(currentOffset + data.length);
+      setHasMore(data.length === limit); // jeśli przyszło mniej niż limit, to już koniec
     } catch (error) {
       console.error('Błąd pobierania restauracji:', error);
     } finally {
@@ -25,8 +36,20 @@ function App() {
 
   // Pobranie domyślnych restauracji przy uruchomieniu
   useEffect(() => {
-    fetchRestaurants();
+    fetchRestaurants(true);
   }, []);
+
+  const handleLoadMore = () => {
+    if (hasMore && !loading) {
+      fetchRestaurants();
+    }
+  };
+
+  const handleSearch = () => {
+    setOffset(0);
+    setHasMore(true);
+    fetchRestaurants(true);
+  };
 
   return (
     <div style={{ padding: '20px' }}>
@@ -62,10 +85,10 @@ function App() {
           />
         </label>
         <button
-          onClick={fetchRestaurants}
+          onClick={handleSearch}
           style={{ marginLeft: '10px', padding: '5px 10px' }}
         >
-          Load Restaurants
+          Search
         </button>
       </div>
 
@@ -91,6 +114,15 @@ function App() {
           </p>
         </div>
       ))}
+
+      {hasMore && !loading && (
+        <button
+          onClick={handleLoadMore}
+          style={{ padding: '10px 20px', marginTop: '20px' }}
+        >
+          Load More
+        </button>
+      )}
     </div>
   );
 }
